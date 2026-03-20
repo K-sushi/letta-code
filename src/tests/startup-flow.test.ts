@@ -20,10 +20,26 @@ async function runCli(
   const { timeoutMs = 30000, expectExit } = options;
 
   return new Promise((resolve, reject) => {
+    // For credential-check tests, explicitly unset LETTA_API_KEY to test error handling
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      LETTA_CODE_AGENT_ROLE: "subagent",
+    };
+    const requiresAuth =
+      args.includes("--new-agent") ||
+      args.includes("--new") ||
+      args.includes("--continue") ||
+      args.includes("-c") ||
+      args.includes("--conversation") ||
+      args.includes("-C") ||
+      args.includes("--import");
+    if (requiresAuth && !args.includes("--agent")) {
+      delete env.LETTA_API_KEY;
+    }
+
     const proc = spawn("bun", ["run", "dev", ...args], {
       cwd: projectRoot,
-      // Mark as subagent to prevent polluting user's LRU settings
-      env: { ...process.env, LETTA_CODE_AGENT_ROLE: "subagent" },
+      env,
     });
 
     let stdout = "";
@@ -92,15 +108,6 @@ describe("Startup Flow - Flag Conflicts", () => {
     });
     expect(result.stderr).toContain(
       "--conversation cannot be used with --resume",
-    );
-  });
-
-  test("--conversation conflicts with --continue", async () => {
-    const result = await runCli(["--conversation", "conv-123", "--continue"], {
-      expectExit: 1,
-    });
-    expect(result.stderr).toContain(
-      "--conversation cannot be used with --continue",
     );
   });
 
@@ -195,14 +202,6 @@ describe("Startup Flow - Smoke", () => {
     );
     expect(result.stderr).toContain("Missing LETTA_API_KEY");
     expect(result.stderr).not.toContain("Unknown option '--memfs-startup'");
-  });
-
-  test("-c alias for --continue is accepted", async () => {
-    const result = await runCli(["-p", "Say OK", "-c"], {
-      expectExit: 1,
-    });
-    expect(result.stderr).toContain("Missing LETTA_API_KEY");
-    expect(result.stderr).not.toContain("Unknown option '-c'");
   });
 
   test("-C alias for --conversation is accepted", async () => {

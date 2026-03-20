@@ -36,11 +36,11 @@ export const CLI_FLAG_CATALOG = {
     mode: "both",
     help: { description: "Show current directory, skills, and pinned agents" },
   },
-  continue: {
-    parser: { type: "boolean", short: "c" },
+  logout: {
+    parser: { type: "boolean" },
     mode: "both",
     help: {
-      description: "Resume last session (agent + conversation) directly",
+      description: "Clear stored auth credentials (API key and refresh token)",
     },
   },
   resume: {
